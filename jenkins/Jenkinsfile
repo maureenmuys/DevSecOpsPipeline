@@ -1,0 +1,103 @@
+// Jenkinsfile — declaratieve pipeline voor GitHub PR-validatie
+// Deployen als een BuildConfig in OpenShift
+pipeline {
+    agent {
+        // Draait in een Python-pod in OpenShift
+        kubernetes {
+            yaml '''
+apiVersion: v1
+kind: Pod
+spec:
+  containers:
+  - name: python
+    image: python:3.11-slim
+    command:
+    - cat
+    tty: true
+'''
+        }
+    }
+
+    // Automatisch triggeren via GitHub webhook (ingesteld in Jenkins job config)
+    triggers {
+        githubPush()
+    }
+
+    environment {
+        // GitHub repo info (pas aan naar jouw situatie)
+        GITHUB_REPO  = 'jouw-org/jouw-repo'
+        GITHUB_TOKEN = credentials('github-token') // Secret in Jenkins opgeslagen
+    }
+
+    stages {
+        stage('Checkout') {
+            steps {
+                checkout scm
+                echo "✅ Code opgehaald van branch: ${env.BRANCH_NAME}"
+            }
+        }
+
+        stage('Installeer dependencies') {
+            steps {
+                container('python') {
+                    sh '''
+                        pip install --quiet pytest flake8
+                    '''
+                }
+            }
+        }
+
+        stage('Linter (flake8)') {
+            steps {
+                container('python') {
+                    sh '''
+                        echo "▶ Linter uitvoeren..."
+                        flake8 app/ --max-line-length=100 --statistics
+                        echo "✅ Linter geslaagd"
+                    '''
+                }
+            }
+        }
+
+        stage('Unit tests (pytest)') {
+            steps {
+                container('python') {
+                    sh '''
+                        echo "▶ Tests uitvoeren..."
+                        pytest app/ -v --tb=short
+                        echo "✅ Alle tests geslaagd"
+                    '''
+                }
+            }
+        }
+    }
+
+    post {
+        // Na afloop: stuur commit status terug naar GitHub PR
+        success {
+            script {
+                setGitHubCommitStatus('SUCCESS')
+            }
+        }
+        failure {
+            script {
+                setGitHubCommitStatus('FAILURE')
+            }
+        }
+    }
+}
+
+// Hulpfunctie: GitHub Commit Status API aanroepen
+def setGitHubCommitStatus(String state) {
+    def commitSha = sh(script: 'git rev-parse HEAD', returnStdout: true).trim()
+    def description = state == 'SUCCESS' ? 'Pipeline geslaagd' : 'Pipeline mislukt'
+
+    sh """
+        curl -s -X POST \\
+          -H "Authorization: token \${GITHUB_TOKEN}" \\
+          -H "Content-Type: application/json" \\
+          -d '{"state":"${state.toLowerCase()}","description":"${description}","context":"jenkins/pipeline"}' \\
+          "https://api.github.com/repos/\${GITHUB_REPO}/statuses/${commitSha}"
+        echo "📤 GitHub status verstuurd: ${state}"
+    """
+}

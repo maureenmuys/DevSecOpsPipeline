@@ -1,0 +1,38 @@
+# openshift-buildconfig.yaml
+# Deploy Jenkins pipeline als BuildConfig in OpenShift
+# Gebruik: oc apply -f openshift-buildconfig.yaml
+
+---
+apiVersion: build.openshift.io/v1
+kind: BuildConfig
+metadata:
+  name: poc-pipeline
+  namespace: jouw-namespace          # ← aanpassen
+  labels:
+    app: poc-developer-pipeline
+spec:
+  source:
+    type: Git
+    git:
+      uri: https://github.com/jouw-org/jouw-repo   # ← aanpassen
+      ref: main
+  strategy:
+    type: JenkinsPipeline
+    jenkinsPipelineStrategy:
+      jenkinsfilePath: jenkins/Jenkinsfile
+  triggers:
+    # GitHub webhook trigger (secret gegenereerd door OpenShift)
+    - type: GitHub
+      github:
+        secret: poc-webhook-secret   # ← zet dit ook in GitHub repo settings
+
+---
+# Secret voor GitHub webhook validatie
+apiVersion: v1
+kind: Secret
+metadata:
+  name: poc-webhook-secret
+  namespace: jouw-namespace          # ← aanpassen
+type: Opaque
+stringData:
+  WebHookSecretKey: "vervang-dit-door-een-sterk-geheim"   # ← aanpassen
