@@ -1,0 +1,44 @@
+pipeline {
+    agent any
+
+    parameters {
+        string(name: 'GIT_COMMIT', description: 'Git commit SHA van GitHub Actions')
+        string(name: 'BRANCH',     description: 'Branch naam', defaultValue: 'main')
+    }
+
+    stages {
+        stage('Code ophalen') {
+            steps {
+                git branch: params.BRANCH,
+                    url: 'https://github.com/maureenmuys/DevSecOpsPipeline'
+            }
+        }
+
+        stage('Deploy naar staging') {
+            steps {
+                echo "Deploying commit ${params.GIT_COMMIT} naar staging..."
+                sh '''
+                    oc project maureenmuys-dev
+                    oc set image deployment/poc-app poc-app=quay.io/maureenmuys/poc-app:${GIT_COMMIT}
+                '''
+            }
+        }
+
+        stage('Goedkeuring productie') {
+            steps {
+                input message: "Deploy naar productie?", ok: "Goedkeuren"
+            }
+        }
+
+        stage('Deploy naar productie') {
+            steps {
+                echo "Deploying naar productie..."
+            }
+        }
+    }
+
+    post {
+        success { echo "✓ Pipeline succesvol" }
+        failure { echo "✗ Pipeline mislukt" }
+    }
+}
