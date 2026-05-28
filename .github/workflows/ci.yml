@@ -53,17 +53,6 @@ jobs:
       - name: Jenkins triggeren
         if: github.ref == 'refs/heads/main' && success()
         run: |
-          JENKINS_URL="https://jenkins-maureenmuys-dev.apps.rm3.7wse.p1.openshiftapps.com"
-          TOKEN="${{ secrets.JENKINS_TOKEN }}"
-          
-          CRUMB=$(curl -s \
-            "${JENKINS_URL}/crumbIssuer/api/xml?xpath=concat(//crumbRequestField,\":\",//crumb)" \
-            --header "Authorization: Bearer ${TOKEN}")
-          
-          echo "Crumb: ${CRUMB}"
-          
           curl -v -X POST \
-            "${JENKINS_URL}/job/poc-deploy/build?token=poc-deploy-token" \
-            --header "Authorization: Bearer ${TOKEN}" \
-            --header "${CRUMB}" \
-            --data ""
+            "https://jenkins-maureenmuys-dev.apps.rm3.7wse.p1.openshiftapps.com/job/poc-deploy/build?token=poc-deploy-token" \
+            --header "Authorization: Bearer ${{ secrets.JENKINS_TOKEN }}"
