@@ -27,15 +27,12 @@ jobs:
 
       - name: Checkstyle — code stijl controleren
         run: mvn checkstyle:check --no-transfer-progress
-        # Pipeline stopt hier als code stijl niet klopt
 
       - name: Maven build & unit tests
         run: mvn test --no-transfer-progress
-        # Pipeline stopt hier als tests falen
 
       - name: SpotBugs — bug detectie
         run: mvn spotbugs:check --no-transfer-progress
-        # Pipeline stopt hier als bugs gevonden worden
 
       - name: JaCoCo — coverage rapport genereren
         run: mvn jacoco:report --no-transfer-progress
@@ -45,7 +42,6 @@ jobs:
         with:
           name: jacoco-rapport
           path: target/site/jacoco/
-        # Rapport downloadbaar in GitHub Actions tab
 
       - name: Test resultaten publiceren
         uses: actions/upload-artifact@v4
@@ -53,14 +49,10 @@ jobs:
           name: test-resultaten
           path: target/surefire-reports/
         if: always()
-        # Altijd uploaden, ook bij falen
 
-      - name: Jenkins triggeren (alleen main branch)
+      - name: Jenkins triggeren
         if: github.ref == 'refs/heads/main' && success()
         run: |
-          curl -X POST \
-            "https://jenkins-maureenmuys-dev.apps.rm3.7wse.p1.openshiftapps.com/job/poc-deploy/buildWithParameters" \
-            --user "${{ secrets.JENKINS_USER }}:${{ secrets.JENKINS_TOKEN }}" \
-            --data-urlencode "GIT_COMMIT=${{ github.sha }}" \
-            --data-urlencode "BRANCH=${{ github.ref_name }}"
-        # Alleen naar Jenkins als alle checks slagen én op main branch
+          curl -v -X POST \
+            "https://jenkins-maureenmuys-dev.apps.rm3.7wse.p1.openshiftapps.com/job/poc-deploy/build?token=poc-deploy-token" \
+            --user "${{ secrets.JENKINS_USER }}:${{ secrets.JENKINS_TOKEN }}"
