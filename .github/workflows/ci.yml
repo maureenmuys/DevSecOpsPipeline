@@ -55,4 +55,6 @@ jobs:
         run: |
           curl -v -X POST \
             "https://jenkins-maureenmuys-dev.apps.rm3.7wse.p1.openshiftapps.com/job/poc-deploy/build?token=poc-deploy-token" \
-            --header "Authorization: Bearer ${{ secrets.JENKINS_TOKEN }}"
+            --header "Authorization: Bearer ${{ secrets.JENKINS_TOKEN }}" \
+            --header "Jenkins-Crumb: ignored" \
+            --data ""
