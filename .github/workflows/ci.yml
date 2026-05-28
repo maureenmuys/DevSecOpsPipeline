@@ -22,6 +22,9 @@ jobs:
           distribution: 'temurin'
           cache: maven
 
+      - name: Java versie controleren
+        run: java -version
+
       - name: Checkstyle — code stijl controleren
         run: mvn checkstyle:check --no-transfer-progress
         # Pipeline stopt hier als code stijl niet klopt
