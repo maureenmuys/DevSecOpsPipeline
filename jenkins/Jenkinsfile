@@ -11,14 +11,13 @@ pipeline {
 
         stage('Deploy naar staging') {
             steps {
-                echo "Deploying naar staging..."
                 sh '''
                     oc project maureenmuys-dev
                     if oc get deployment poc-app 2>/dev/null; then
                         oc set image deployment/poc-app poc-app=quay.io/maureenmuys/poc-app:latest
                         echo "Deployment bijgewerkt"
                     else
-                        echo "INFO: poc-app deployment bestaat nog niet"
+                        echo "INFO: poc-app bestaat nog niet"
                         echo "POC OK: Jenkins correct getriggerd door GitHub Actions"
                     fi
                 '''
